@@ -11,8 +11,12 @@ import { OrbitControls, PerspectiveCamera, useGLTF } from '@react-three/drei'
 // import tracerFrag from './shaders/cartesianFrag.glsl'
 
 // Import schwarzschild shader
-import tracerVert from './shaders/schwarzVert.glsl'
-import tracerFrag from './shaders/schwarzFrag.glsl'
+// import tracerVert from './shaders/schwarzVert.glsl'
+// import tracerFrag from './shaders/schwarzFrag.glsl'
+
+// Import elliptical solution
+import tracerVert from './shaders/ellipseVert.glsl'
+import tracerFrag from './shaders/ellipseFrag.glsl'
 
 
 function BlackHoleMesh() {
