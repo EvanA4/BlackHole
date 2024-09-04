@@ -139,8 +139,8 @@ float *trace_ray(Ray *current) {
 
 int main() {
     FILE *fptr = fopen("output.bin", "w");
-    const int BATCHSIZE = 300;
-    const int RESOLUTION = 139; // works at 138, breaks at 139
+    const int BATCHSIZE = 1024;
+    const int RESOLUTION = 139; // writes offset bytes at 139
     const int NUMBATCHES = ceil(RESOLUTION * RESOLUTION * 3 / (float) BATCHSIZE);
     const float MAXR = 10000.F;
 
@@ -176,7 +176,10 @@ int main() {
                 memcpy(buffer + bufferSize, output, (3 - leftToAdd) * sizeof(float));
 
                 // Write buffer to file
-                fwrite(buffer, sizeof(float), BATCHSIZE, fptr);
+                if (fwrite(buffer, sizeof(float), BATCHSIZE, fptr) != BATCHSIZE) {
+                    printf("Error: failed to write batch number %d.\n", buffersWritten + 1);
+                    exit(1);
+                }
                 bufferSize = leftToAdd;
                 ++buffersWritten;
                 printf("Completed batch %d of %d\n", buffersWritten, NUMBATCHES);
@@ -187,7 +190,10 @@ int main() {
             } else { // Perfectly filled the buffer!
                 // Write buffer
                 memcpy(buffer + bufferSize, output, 3 * sizeof(float));
-                fwrite(buffer, sizeof(float), BATCHSIZE, fptr);
+                if (fwrite(buffer, sizeof(float), BATCHSIZE, fptr) != BATCHSIZE) {
+                    printf("Error: failed to write batch number %d.\n", buffersWritten + 1);
+                    exit(1);
+                }
                 ++buffersWritten;
                 bufferSize = 0;
                 printf("Completed batch %d of %d\n", buffersWritten, NUMBATCHES);
@@ -201,8 +207,11 @@ int main() {
     // Check for potential last write
     if (bufferSize) {
         // Write buffer
-        fwrite(buffer, sizeof(float), bufferSize, fptr);
-        printf("Completed batch %d of %d with size %d instead of %d\n", buffersWritten, NUMBATCHES, bufferSize, BATCHSIZE);
+        if (fwrite(buffer, sizeof(float), bufferSize, fptr) != bufferSize) {
+            printf("Error: failed to write batch number %d.\n", buffersWritten + 1);
+            exit(1);
+        }
+        printf("Completed batch %d of %d with size %d instead of %d\n", buffersWritten + 1, NUMBATCHES, bufferSize, BATCHSIZE);
     }
 
     free(buffer);

@@ -2,7 +2,7 @@ import numpy as np
 from openexr_numpy import imwrite
 import struct
 
-RESOLUTION = 100
+RESOLUTION = 138
 
 def read_bin(fileName: str) -> list[list[float]]:
     '''
@@ -32,5 +32,5 @@ if __name__ == '__main__':
     rawList = read_bin('output.bin')
     # print(rawList[0])
     nparr = np.asarray(rawList, dtype=np.float32)
-    print(nparr)
-    # imwrite('final.exr', nparr)
+    # print(nparr)
+    imwrite('final.exr', nparr)
