@@ -1,5 +1,6 @@
 uniform vec3 meshPos;
 uniform vec2 meshDim;
+uniform sampler2D lightTxt;
 varying vec2 vUv;
 
 
@@ -21,21 +22,13 @@ Ray create_screen_ray() {
 }
 
 void main() {
-    /*
-    u = 2M/r
-    alpha = 2ME/L
-
-    A (scatter) 0 < a < 2 / (sqrt(27))
-    B (plunge) a > 2 / (sqrt(27))
-    */
     Ray r = create_screen_ray();
-    float L = length(vec3(
-        r.origin.y * r.dir.z - r.origin.z * r.dir.y,
-        r.origin.z * r.dir.x - r.origin.x * r.dir.z, // Angular momentum of photon
-        r.origin.x * r.dir.y - r.origin.y * r.dir.x
-    ));
-    float u = 2. * .2 / length(r.origin);
-    float a = 2. * .2 * 1. / L;
+    // compute psi, r0
+    // compute appropriate pixel sizes
+    // get phi, r1
+    // get ehat0 and ehat1
+    // get multiples of ehat0 and ehat1
+    // get final position of photon
 
-    gl_FragColor = vec4(vec3(0. < a && a < (2./sqrt(27.))), 1.);
+    gl_FragColor = texture2D(lightTxt, vUv);
 }

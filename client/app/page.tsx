@@ -1,9 +1,10 @@
 // @ts-nocheck
 'use client'
 import React, { useEffect, useRef, useState } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { OrbitControls, PerspectiveCamera, useGLTF } from '@react-three/drei'
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader'
 
 
 // Import normal shader
@@ -15,8 +16,8 @@ import { OrbitControls, PerspectiveCamera, useGLTF } from '@react-three/drei'
 // import tracerFrag from './shaders/schwarzFrag.glsl'
 
 // Import elliptical solution
-import tracerVert from './shaders/ellipseVert.glsl'
-import tracerFrag from './shaders/ellipseFrag.glsl'
+import tracerVert from './shaders/fastVert.glsl'
+import tracerFrag from './shaders/fastFrag.glsl'
 
 
 function BlackHoleMesh() {
@@ -26,10 +27,10 @@ function BlackHoleMesh() {
         <meshStandardMaterial/>
         <sphereGeometry args={[1, 32, 32]}/>
       </mesh>
-      {/* <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
         <meshStandardMaterial side={THREE.DoubleSide}/>
         <ringGeometry args={[1.3, 3, 32, 1]}/>
-      </mesh> */}
+      </mesh>
     </>
   )
 }
@@ -39,8 +40,18 @@ function ShaderRec() {
   const { scene, camera, size } = useThree()
   const meshRef = useRef(null!)
   const rectRef = useRef(null!)
+  const shMatRef = useRef(null!)
   const meshPos = useRef(new THREE.Vector3())
   const meshDim = useRef(new THREE.Vector2())
+
+  useEffect(() => {
+    const exrLoader = new EXRLoader();
+    exrLoader.setDataType(THREE.FloatType)
+    exrLoader.load('/final.exr', (texture) => {
+      shMatRef.current.uniforms.lightTxt.value = texture
+      // console.log(texture.image.data)
+    })
+  }, [])
 
   useFrame((state) => {
     // match post-processing mesh to camera
@@ -59,9 +70,11 @@ function ShaderRec() {
     <>
       <mesh ref={meshRef}>
         <shaderMaterial
+          ref={shMatRef}
           uniforms={{
             meshPos: { value: meshPos.current },
-            meshDim: { value: meshDim.current }
+            meshDim: { value: meshDim.current },
+            lightTxt: { value: null }
           }}
           vertexShader={tracerVert}
           fragmentShader={tracerFrag}
@@ -79,8 +92,8 @@ export default function Home() {
       <Canvas resize={{scroll: false}}>
         <PerspectiveCamera position={[10, 3, 0]} makeDefault fov={50}/>
         {/* <spotLight position={[10, 10, 10]} intensity={1000}/> */}
+        {/* <BlackHoleMesh/> */}
         <ShaderRec/>
-        <BlackHoleMesh/>
         <OrbitControls/>
       </Canvas>
     </main>
