@@ -32,15 +32,16 @@ void main() {
 
     // compute psi, r0
     float r0 = rayDist;
-    vec3 dire0;
-    vec3 dire1;
+    float phi = atan(dot(r.dir, ehat1), dot(r.dir, ehat0));
 
     // compute appropriate pixel sizes
+    
+
     // get phi, r1
     // get ehat0 and ehat1
     // get multiples of ehat0 and ehat1
     // get final position of photon
 
     // gl_FragColor = texture2D(lightTxt, vUv);
-    gl_FragColor = vec4(ehat0, 1.);
+    gl_FragColor = vec4(vec3(phi / 3.141592), 1.);
 }

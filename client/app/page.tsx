@@ -90,7 +90,7 @@ export default function Home() {
   return (
     <main className="bg-gray-700 h-[100vh]">
       <Canvas resize={{scroll: false}}>
-        <PerspectiveCamera position={[10, 3, 0]} makeDefault fov={50}/>
+        <PerspectiveCamera position={[10, 0, 0]} makeDefault fov={50}/>
         {/* <spotLight position={[10, 10, 10]} intensity={1000}/> */}
         {/* <BlackHoleMesh/> */}
         <ShaderRec/>
