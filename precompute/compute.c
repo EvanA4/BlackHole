@@ -139,8 +139,8 @@ float *trace_ray(Ray *current) {
 
 int main() {
     FILE *fptr = fopen("output.bin", "w");
-    const int BATCHSIZE = 1024;
-    const int RESOLUTION = 139; // writes offset bytes at 139
+    const int BATCHSIZE = 2048;
+    const int RESOLUTION = 512;
     const int NUMBATCHES = ceil(RESOLUTION * RESOLUTION * 3 / (float) BATCHSIZE);
     const float MAXR = 10000.F;
 
@@ -214,6 +214,7 @@ int main() {
         printf("Completed batch %d of %d with size %d instead of %d\n", buffersWritten + 1, NUMBATCHES, bufferSize, BATCHSIZE);
     }
 
+    fflush(fptr);
     free(buffer);
     fclose(fptr);
 }

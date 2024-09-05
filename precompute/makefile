@@ -1,4 +1,6 @@
 all:
 	g++ -o compute compute.c
+	g++ -o checkbin checkbin.c
 clean:
-	rm compute
+	del compute.exe
+	del checkbin.exe
