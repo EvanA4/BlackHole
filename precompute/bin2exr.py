@@ -2,7 +2,7 @@ import numpy as np
 from openexr_numpy import imwrite
 import struct
 
-RESOLUTION = 512
+RESOLUTION = 1024
 
 if __name__ == '__main__':
     with open('output.bin', 'rb') as f:

@@ -4,7 +4,7 @@
 int main() {
     FILE *fptr = fopen("output.bin", "rb");
     const int BATCHSIZE = 2048;
-    const int RESOLUTION = 512;
+    const int RESOLUTION = 1024;
 
     // allocate all the memory for the 3D array
     float ***image = (float ***) calloc(RESOLUTION, sizeof(float **));
@@ -38,7 +38,7 @@ int main() {
 
     // Print final array
     int imageSize = RESOLUTION * RESOLUTION * 3;
-    for (int i = imageSize - (RESOLUTION * 3); i < imageSize; i += 3) {
+    for (int i = 0; i < imageSize; i += 3) {
         printf("[%d][%d]: {%f, %f, %f}\n",
             i / (RESOLUTION * 3),
             i % (RESOLUTION * 3) / 3,

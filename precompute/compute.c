@@ -72,7 +72,7 @@ float get_phi(float *position, float *ehat0, float *ehat1) {
     if (e0) {
         float ratio = e1 / e0;
         phi = atan(ratio);
-        if (phi < 0.F)
+        if (e0 < 0.F)
             phi += 3.141592F;
         return phi;
 
@@ -86,25 +86,11 @@ float get_phi(float *position, float *ehat0, float *ehat1) {
 float *trace_ray(Ray *current) {
     float *output = (float *) calloc(3, sizeof(float));
 
-    float *ehat0 = (float *) calloc(3, sizeof(float));
-    float *ehat1 = (float *) calloc(3, sizeof(float));
-    
-    // create ehat0
-    memcpy(ehat0, &(current->origin), 3 * sizeof(float));
-    float initR = sqrt(
-        current->origin[0] * current->origin[0] + 
-        current->origin[1] * current->origin[1] + 
-        current->origin[2] * current->origin[2]
-    );
-    if (initR) {
-        for (int i = 0; i < 3; ++i)
-            ehat0[i] /= initR;
-    }
+    float ehat0[3] = {1.F, 0.F, 0.F};
+    float ehat1[3]= {0.F, 1.F, 0.F};
 
-    // create ehat1
-    float vdots = current->dir[0] * ehat0[0] + current->dir[1] * ehat0[1] + current->dir[2] * ehat0[2];
-    for (int i = 0; i < 3; ++i)
-        ehat1[i] = current->dir[i] - ehat0[i] * vdots;
+    // printf("\n\nehat0: {%f, %f, %f}\n", ehat0[0], ehat0[1], ehat0[2]);
+    // printf("ehat1: {%f, %f, %f}\n", ehat1[0], ehat1[1], ehat1[2]);
 
     const float DISKRANGE[2] = {3.F, 6.F};
     const float DISKDEPTH = .025;
@@ -118,8 +104,11 @@ float *trace_ray(Ray *current) {
     memcpy(s, &(current->origin), 3 * sizeof(float));
     memcpy(ds, &(current->dir), 3 * sizeof(float));
 
+    // printf("s: {%f, %f, %f}\n", s[0], s[1], s[2]);
+    // printf("ds: {%f, %f, %f}\n", ds[0], ds[1], ds[2]);
+
     // for (int i = 0; i < N; ++i) {
-    //     // Casic Euler's method for second order ODE
+    //     // Classic Euler's method for second order ODE
     //     float *ds2 = get_ds2(L, s);
 
     //     float step_s[3] = {ds[0] * dt, ds[1] * dt, ds[2] * dt};
@@ -152,17 +141,18 @@ float *trace_ray(Ray *current) {
     // }
   
     // Assume photon is far enough away from black hole to travel in straight line
+
     s[0] += 10000.F * ds[0];
     s[1] += 10000.F * ds[1];
     s[2] += 10000.F * ds[2];
+
+    // printf("final s: {%f, %f, %f}\n", s[0], s[1], s[2]);
 
     output[0] = get_phi(s, ehat0, ehat1);
     output[1] = sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]);
 
     free(s);
     free(ds);
-    free(ehat0);
-    free(ehat1);
     return output;
 }
 
@@ -170,7 +160,7 @@ float *trace_ray(Ray *current) {
 int main() {
     FILE *fptr = fopen("output.bin", "wb");
     const int BATCHSIZE = 2048;
-    const int RESOLUTION = 512;
+    const int RESOLUTION = 1024;
     const int NUMBATCHES = ceil(RESOLUTION * RESOLUTION * 3 / (float) BATCHSIZE);
     const float MAXR = 10000.F;
 
@@ -184,6 +174,7 @@ int main() {
     // EXR is created from bottom left to top right
     for (int i = 0; i < RESOLUTION; ++i) { // For each row
         for (int j = 0; j < RESOLUTION; ++j) { // For each pixel in row...
+            // if (j == RESOLUTION / 2 + 10) exit(0);
 
             // Get ray for a r0 and psi (and cartesian coordinates)
             float r0 = px2r(i, MAXR, RESOLUTION);
@@ -193,9 +184,10 @@ int main() {
             // Compute r1 and phi for this input
             float *output = trace_ray(current);
             // float *output = (float *) calloc(3, sizeof(float));
-            // output[0] = current->origin[0];
-            // output[1] = current->origin[1];
-            // output[2] = current->origin[2];
+            // output[0] = r0;
+            // output[1] = psi;
+            // output[2] = 0.;
+            // printf("output: {%f, %f, %f}\n", output[0], output[1], output[2]);
 
             // Add phi and r1 and 0.F to buffer and write if necessary
             if (bufferSize + 3 < BATCHSIZE) { // Trivial case
