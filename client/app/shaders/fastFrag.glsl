@@ -32,16 +32,26 @@ void main() {
 
     // compute psi, r0
     float r0 = rayDist;
-    float phi = atan(dot(r.dir, ehat1), dot(r.dir, ehat0));
+    float psi = atan(dot(r.dir, ehat1), dot(r.dir, ehat0));
 
     // compute appropriate pixel sizes
-    
+    const float MAXR = 10000.;
+    vec2 access = vec2(
+      sqrt(MAXR * MAXR - (MAXR - r0) * (MAXR - r0)) / MAXR,
+      psi / 3.141592
+    );
 
-    // get phi, r1
-    // get ehat0 and ehat1
+    vec2 phi_r1 = texture2D(lightTxt, access).xy;
+    float phi = phi_r1.x;
+    float r1 = phi_r1.y;
+
     // get multiples of ehat0 and ehat1
-    // get final position of photon
+    float finale0 = r1 * cos(phi);
+    float finale1 = r1 * sin(phi);
 
-    gl_FragColor = texture2D(lightTxt, vUv);
+    // get final position of photon
+    vec3 finalPos = vec3(finale0) * ehat0 + vec3(finale1) * ehat1;
+
     // gl_FragColor = vec4(vec3(phi / 3.141592), 1.);
+    gl_FragColor = vec4(finalPos, 1.);
 }

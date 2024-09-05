@@ -64,6 +64,8 @@ function ShaderRec() {
 
     meshPos.current.copy(meshRef.current.position)
     meshDim.current.set(rectRef.current.parameters.width, rectRef.current.parameters.height)
+
+    // console.log(camera.position)
   })
 
   return (

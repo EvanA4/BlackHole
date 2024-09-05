@@ -64,19 +64,47 @@ float *get_ds2(const float L, float *s) {
 
 
 // Computes co-planar angle given co-planar cartesian coordinates
-float get_phi(float *position) {
-    float ratio = position[1] / position[0];
-    if (position[0] < 0.F)
-        ratio += 3.141592F;
-    else if (position[0] == 0.F)
-        return 1.570796 + (position[1] < 0.F ? 3.141592 : 0.F); // pi/2
-    return atan(ratio);
+float get_phi(float *position, float *ehat0, float *ehat1) {
+    float e0 = position[0] * ehat0[0] + position[1] * ehat0[1] + position[2] * ehat0[2];
+    float e1 = position[0] * ehat1[0] + position[1] * ehat1[1] + position[2] * ehat1[2];
+
+    float phi;
+    if (e0) {
+        float ratio = e1 / e0;
+        phi = atan(ratio);
+        if (phi < 0.F)
+            phi += 3.141592F;
+        return phi;
+
+    } else {
+        return 1.570796 + (e1 < 0.F ? 3.141592 : 0.F);
+    }
 }
 
 
 // Follows path of photon around black hole
 float *trace_ray(Ray *current) {
     float *output = (float *) calloc(3, sizeof(float));
+
+    float *ehat0 = (float *) calloc(3, sizeof(float));
+    float *ehat1 = (float *) calloc(3, sizeof(float));
+    
+    // create ehat0
+    memcpy(ehat0, &(current->origin), 3 * sizeof(float));
+    float initR = sqrt(
+        current->origin[0] * current->origin[0] + 
+        current->origin[1] * current->origin[1] + 
+        current->origin[2] * current->origin[2]
+    );
+    if (initR) {
+        for (int i = 0; i < 3; ++i)
+            ehat0[i] /= initR;
+    }
+
+    // create ehat1
+    float vdots = current->dir[0] * ehat0[0] + current->dir[1] * ehat0[1] + current->dir[2] * ehat0[2];
+    for (int i = 0; i < 3; ++i)
+        ehat1[i] = current->dir[i] - ehat0[i] * vdots;
 
     const float DISKRANGE[2] = {3.F, 6.F};
     const float DISKDEPTH = .025;
@@ -90,49 +118,51 @@ float *trace_ray(Ray *current) {
     memcpy(s, &(current->origin), 3 * sizeof(float));
     memcpy(ds, &(current->dir), 3 * sizeof(float));
 
-    for (int i = 0; i < N; ++i) {
-        // Casic Euler's method for second order ODE
-        float *ds2 = get_ds2(L, s);
+    // for (int i = 0; i < N; ++i) {
+    //     // Casic Euler's method for second order ODE
+    //     float *ds2 = get_ds2(L, s);
 
-        float step_s[3] = {ds[0] * dt, ds[1] * dt, ds[2] * dt};
-        float step_ds[3] = {ds2[0] * dt, ds2[1] * dt, ds2[2] * dt};
-        free(ds2);
+    //     float step_s[3] = {ds[0] * dt, ds[1] * dt, ds[2] * dt};
+    //     float step_ds[3] = {ds2[0] * dt, ds2[1] * dt, ds2[2] * dt};
+    //     free(ds2);
 
-        // Update variables
-        s[0] += step_s[0];
-        s[1] += step_s[1];
-        s[2] += step_s[2];
-        ds[0] += step_ds[0];
-        ds[1] += step_ds[1];
-        ds[2] += step_ds[2];
-        t += dt;
+    //     // Update variables
+    //     s[0] += step_s[0];
+    //     s[1] += step_s[1];
+    //     s[2] += step_s[2];
+    //     ds[0] += step_ds[0];
+    //     ds[1] += step_ds[1];
+    //     ds[2] += step_ds[2];
+    //     t += dt;
 
-        // Check for escape conditions
-        float slength2 = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
-        if (slength2 < 1.) {
-            // Photon crossed the event horizon
-            output[0] = -1.F;
-            output[1] = 0.F;
-            return output;
-        }
-        // if (fabs(s[1]) < DISKDEPTH && slength2 < (DISKRANGE[0] * DISKRANGE[0]) && slength2 > (DISKRANGE[1] * DISKRANGE[1])) {
-        //     // Photon hit accretion disk
-        //     output[0] = get_phi(s);
-        //     output[1] = sqrt(slength2);
-        //     return output;
-        // }
-    }
+    //     // Check for escape conditions
+    //     float slength2 = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
+    //     if (slength2 < 1.) {
+    //         // Photon crossed the event horizon
+    //         output[0] = -1.F;
+    //         output[1] = 0.F;
+    //         return output;
+    //     }
+    //     // if (fabs(s[1]) < DISKDEPTH && slength2 < (DISKRANGE[0] * DISKRANGE[0]) && slength2 > (DISKRANGE[1] * DISKRANGE[1])) {
+    //     //     // Photon hit accretion disk
+    //     //     output[0] = get_phi(s);
+    //     //     output[1] = sqrt(slength2);
+    //     //     return output;
+    //     // }
+    // }
   
     // Assume photon is far enough away from black hole to travel in straight line
     s[0] += 10000.F * ds[0];
-    s[0] += 10000.F * ds[0];
-    s[0] += 10000.F * ds[0];
+    s[1] += 10000.F * ds[1];
+    s[2] += 10000.F * ds[2];
 
-    output[0] = get_phi(s);
+    output[0] = get_phi(s, ehat0, ehat1);
     output[1] = sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]);
 
     free(s);
     free(ds);
+    free(ehat0);
+    free(ehat1);
     return output;
 }
 
@@ -161,10 +191,11 @@ int main() {
             Ray *current = create_ray(r0, psi);
 
             // Compute r1 and phi for this input
-            // float *output = trace_ray(current);
-            float *output = (float *) calloc(3, sizeof(float));
-            output[0] = (float) i;
-            output[1] = (float) j;
+            float *output = trace_ray(current);
+            // float *output = (float *) calloc(3, sizeof(float));
+            // output[0] = current->origin[0];
+            // output[1] = current->origin[1];
+            // output[2] = current->origin[2];
 
             // Add phi and r1 and 0.F to buffer and write if necessary
             if (bufferSize + 3 < BATCHSIZE) { // Trivial case

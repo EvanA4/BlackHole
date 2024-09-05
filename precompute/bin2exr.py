@@ -8,5 +8,6 @@ if __name__ == '__main__':
     with open('output.bin', 'rb') as f:
         rawList = np.fromfile(f, dtype=np.float32)
     image = np.reshape(rawList, [RESOLUTION, RESOLUTION, 3])
-    print(image)
+    image = np.flip(image, 0)
+    # print(image)
     imwrite('final.exr', image)
