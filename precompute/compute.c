@@ -138,7 +138,7 @@ float *trace_ray(Ray *current) {
 
 
 int main() {
-    FILE *fptr = fopen("output.bin", "w");
+    FILE *fptr = fopen("output.bin", "wb");
     const int BATCHSIZE = 2048;
     const int RESOLUTION = 512;
     const int NUMBATCHES = ceil(RESOLUTION * RESOLUTION * 3 / (float) BATCHSIZE);

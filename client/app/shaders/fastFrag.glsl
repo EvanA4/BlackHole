@@ -42,6 +42,6 @@ void main() {
     // get multiples of ehat0 and ehat1
     // get final position of photon
 
-    // gl_FragColor = texture2D(lightTxt, vUv);
-    gl_FragColor = vec4(vec3(phi / 3.141592), 1.);
+    gl_FragColor = texture2D(lightTxt, vUv);
+    // gl_FragColor = vec4(vec3(phi / 3.141592), 1.);
 }

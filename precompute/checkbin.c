@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 int main() {
-    FILE *fptr = fopen("output.bin", "r");
+    FILE *fptr = fopen("output.bin", "rb");
     const int BATCHSIZE = 2048;
     const int RESOLUTION = 512;
 
@@ -25,9 +25,9 @@ int main() {
     int ctr = 0;
     float *buffer = (float *) calloc(BATCHSIZE, sizeof(float));
 
-
-    // Handle all full buffer reads
+    // Handle all buffer reads
     int numRead = fread(buffer, sizeof(float), BATCHSIZE, fptr);
+    int numItr = 0;
     while (numRead) {
         for (int i = 0; i < numRead; ++i) {
             image[ctr / (RESOLUTION * 3)][ctr % (RESOLUTION * 3) / 3][ctr % 3] = buffer[i];
@@ -35,7 +35,6 @@ int main() {
         }
         numRead = fread(buffer, sizeof(float), BATCHSIZE, fptr);
     }
-
 
     // Print final array
     int imageSize = RESOLUTION * RESOLUTION * 3;
