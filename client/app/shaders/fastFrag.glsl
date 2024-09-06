@@ -37,8 +37,8 @@ void main() {
     // compute appropriate pixel sizes
     const float MAXR = 10000.;
     vec2 access = vec2(
-      sqrt(MAXR * MAXR - (MAXR - r0) * (MAXR - r0)) / MAXR,
-      psi / 3.141592
+      psi / 3.141592,
+      sqrt(MAXR * MAXR - (MAXR - r0) * (MAXR - r0)) / MAXR
     );
 
     vec2 phi_r1 = texture2D(lightTxt, access).xy;
@@ -53,5 +53,6 @@ void main() {
     vec3 finalPos = vec3(finale0) * ehat0 + vec3(finale1) * ehat1;
 
     // gl_FragColor = vec4(vec3(phi / 3.141592), 1.);
+    // gl_FragColor = vec4(finalPos, 1.);
     gl_FragColor = vec4(finalPos, 1.);
 }

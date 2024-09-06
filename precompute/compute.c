@@ -52,13 +52,14 @@ float get_L(Ray *current) {
 
 // Computes the second derivative of position
 float *get_ds2(const float L, float *s) {
+    // return -1.5 * (L * L) * normalize(s) / pow(length(s), 4.);
+
     float *ds2 = (float *) calloc(3, sizeof(float));
     float slength = sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]);
     float snorm[3] = {s[0] / slength, s[1] / slength, s[2] / slength};
     float combined = -1.5F * (L * L) / pow(slength, 4.F);
-    ds2[0] *= combined;
-    ds2[1] *= combined;
-    ds2[2] *= combined;
+    for (int i = 0; i < 3; ++i)
+        ds2[i] = snorm[i] * combined;
     return ds2;
 }
 
@@ -95,7 +96,8 @@ float *trace_ray(Ray *current) {
     const float DISKRANGE[2] = {3.F, 6.F};
     const float DISKDEPTH = .025;
     const int N = 1500; // Number of steps
-    const float L = get_L(current); // Angular momentum in range [0, 1]
+    const float L = get_L(current); // Angular momentum
+
     float t = 0.;
     float dt = .025;
     float *s = (float *) calloc(3, sizeof(float));
@@ -107,38 +109,38 @@ float *trace_ray(Ray *current) {
     // printf("s: {%f, %f, %f}\n", s[0], s[1], s[2]);
     // printf("ds: {%f, %f, %f}\n", ds[0], ds[1], ds[2]);
 
-    // for (int i = 0; i < N; ++i) {
-    //     // Classic Euler's method for second order ODE
-    //     float *ds2 = get_ds2(L, s);
+    for (int i = 0; i < N; ++i) {
+        // Classic Euler's method for second order ODE
+        float *ds2 = get_ds2(L, s);
 
-    //     float step_s[3] = {ds[0] * dt, ds[1] * dt, ds[2] * dt};
-    //     float step_ds[3] = {ds2[0] * dt, ds2[1] * dt, ds2[2] * dt};
-    //     free(ds2);
+        float step_s[3] = {ds[0] * dt, ds[1] * dt, ds[2] * dt};
+        float step_ds[3] = {ds2[0] * dt, ds2[1] * dt, ds2[2] * dt};
+        free(ds2);
 
-    //     // Update variables
-    //     s[0] += step_s[0];
-    //     s[1] += step_s[1];
-    //     s[2] += step_s[2];
-    //     ds[0] += step_ds[0];
-    //     ds[1] += step_ds[1];
-    //     ds[2] += step_ds[2];
-    //     t += dt;
+        // Update variables
+        s[0] += step_s[0];
+        s[1] += step_s[1];
+        s[2] += step_s[2];
+        ds[0] += step_ds[0];
+        ds[1] += step_ds[1];
+        ds[2] += step_ds[2];
+        t += dt;
 
-    //     // Check for escape conditions
-    //     float slength2 = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
-    //     if (slength2 < 1.) {
-    //         // Photon crossed the event horizon
-    //         output[0] = -1.F;
-    //         output[1] = 0.F;
-    //         return output;
-    //     }
-    //     // if (fabs(s[1]) < DISKDEPTH && slength2 < (DISKRANGE[0] * DISKRANGE[0]) && slength2 > (DISKRANGE[1] * DISKRANGE[1])) {
-    //     //     // Photon hit accretion disk
-    //     //     output[0] = get_phi(s);
-    //     //     output[1] = sqrt(slength2);
-    //     //     return output;
-    //     // }
-    // }
+        // Check for escape conditions
+        float slength2 = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
+        if (slength2 < 1.) {
+            // Photon crossed the event horizon
+            output[0] = -1.F;
+            output[1] = 0.F;
+            return output;
+        }
+        // if (fabs(s[1]) < DISKDEPTH && slength2 < (DISKRANGE[0] * DISKRANGE[0]) && slength2 > (DISKRANGE[1] * DISKRANGE[1])) {
+        //     // Photon hit accretion disk
+        //     output[0] = get_phi(s);
+        //     output[1] = sqrt(slength2);
+        //     return output;
+        // }
+    }
   
     // Assume photon is far enough away from black hole to travel in straight line
 
@@ -160,7 +162,7 @@ float *trace_ray(Ray *current) {
 int main() {
     FILE *fptr = fopen("output.bin", "wb");
     const int BATCHSIZE = 2048;
-    const int RESOLUTION = 1024;
+    const int RESOLUTION = 512;
     const int NUMBATCHES = ceil(RESOLUTION * RESOLUTION * 3 / (float) BATCHSIZE);
     const float MAXR = 10000.F;
 

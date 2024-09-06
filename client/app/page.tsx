@@ -15,7 +15,7 @@ import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader'
 // import tracerVert from './shaders/schwarzVert.glsl'
 // import tracerFrag from './shaders/schwarzFrag.glsl'
 
-// Import elliptical solution
+// Import fast solution
 import tracerVert from './shaders/fastVert.glsl'
 import tracerFrag from './shaders/fastFrag.glsl'
 

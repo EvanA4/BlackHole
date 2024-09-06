@@ -4,7 +4,7 @@
 int main() {
     FILE *fptr = fopen("output.bin", "rb");
     const int BATCHSIZE = 2048;
-    const int RESOLUTION = 1024;
+    const int RESOLUTION = 512;
 
     // allocate all the memory for the 3D array
     float ***image = (float ***) calloc(RESOLUTION, sizeof(float **));
