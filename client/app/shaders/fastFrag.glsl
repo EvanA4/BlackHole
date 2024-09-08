@@ -1,6 +1,7 @@
 uniform vec3 meshPos;
 uniform vec2 meshDim;
 uniform sampler2D lightTxt;
+uniform sampler2D skyTxt;
 varying vec2 vUv;
 
 
@@ -35,10 +36,10 @@ void main() {
     float psi = atan(dot(r.dir, ehat1), dot(r.dir, ehat0));
 
     // compute appropriate pixel sizes
-    const float MAXR = 10000.;
+    const float MAXR = 1000.;
     vec2 access = vec2(
       psi / 3.141592,
-      sqrt(MAXR * MAXR - (MAXR - r0) * (MAXR - r0)) / MAXR
+      r0 / MAXR
     );
 
     vec2 phi_r1 = texture2D(lightTxt, access).xy;
@@ -52,7 +53,12 @@ void main() {
     // get final position of photon
     vec3 finalPos = vec3(finale0) * ehat0 + vec3(finale1) * ehat1;
 
-    // gl_FragColor = vec4(vec3(phi / 3.141592), 1.);
-    // gl_FragColor = vec4(finalPos, 1.);
-    gl_FragColor = vec4(finalPos, 1.);
+    // get spherical coordinates of final position
+    float ftheta = 3.141592 - acos(finalPos.y / length(finalPos));
+    float fphi = sign(finalPos.z) * acos(finalPos.x / sqrt(finalPos.x * finalPos.x + finalPos.z * finalPos.z)) + 3.141592;
+
+    // access sky texture with spherical coords
+    gl_FragColor = texture2D(skyTxt, vec2(fphi / 3.141592 / 2., ftheta / 3.141592));
+    if (abs(fphi) < 0.004)
+      gl_FragColor = texture2D(skyTxt, vec2(.002, ftheta / 3.141592));
 }

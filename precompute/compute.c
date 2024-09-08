@@ -11,19 +11,6 @@ typedef struct Ray {
 } Ray;
 
 
-// Converts pixel row index to corresponding radius
-float px2r(int px, const int MAXR, const int RESOLUTION) {
-    float adjusted = MAXR * px / RESOLUTION;
-    return (MAXR - sqrt(MAXR * MAXR - adjusted * adjusted));
-}
-
-
-// Converts pixel column index to corresponding psi
-float px2psi(int px, const int RESOLUTION) {
-    return (3.141592F * px / RESOLUTION);
-}
-
-
 // Creates ray in 3D cartesian coordinates using r and psi
 Ray *create_ray(float r, float psi) {
     Ray *current = (Ray *) malloc(sizeof(Ray));
@@ -65,16 +52,19 @@ float *get_ds2(const float L, float *s) {
 
 
 // Computes co-planar angle given co-planar cartesian coordinates
-float get_phi(float *position, float *ehat0, float *ehat1) {
-    float e0 = position[0] * ehat0[0] + position[1] * ehat0[1] + position[2] * ehat0[2];
-    float e1 = position[0] * ehat1[0] + position[1] * ehat1[1] + position[2] * ehat1[2];
+float get_phi(float *position) {
+    float e0 = position[0];
+    float e1 = position[1];
 
     float phi;
     if (e0) {
         float ratio = e1 / e0;
         phi = atan(ratio);
-        if (e0 < 0.F)
+        if (e0 < 0.F) {
             phi += 3.141592F;
+        } else if (e1 < 0.F) {
+            phi += 2 * 3.141592F;
+        }
         return phi;
 
     } else {
@@ -87,27 +77,17 @@ float get_phi(float *position, float *ehat0, float *ehat1) {
 float *trace_ray(Ray *current) {
     float *output = (float *) calloc(3, sizeof(float));
 
-    float ehat0[3] = {1.F, 0.F, 0.F};
-    float ehat1[3]= {0.F, 1.F, 0.F};
-
-    // printf("\n\nehat0: {%f, %f, %f}\n", ehat0[0], ehat0[1], ehat0[2]);
-    // printf("ehat1: {%f, %f, %f}\n", ehat1[0], ehat1[1], ehat1[2]);
-
-    const float DISKRANGE[2] = {3.F, 6.F};
-    const float DISKDEPTH = .025;
-    const int N = 1500; // Number of steps
+    const float DISKRANGE[2] = {3.F, 60.F};
+    const int N = 6000; // Number of steps
     const float L = get_L(current); // Angular momentum
 
     float t = 0.;
-    float dt = .025;
+    float dt = .015;
     float *s = (float *) calloc(3, sizeof(float));
     float *ds = (float *) calloc(3, sizeof(float));
 
     memcpy(s, &(current->origin), 3 * sizeof(float));
     memcpy(ds, &(current->dir), 3 * sizeof(float));
-
-    // printf("s: {%f, %f, %f}\n", s[0], s[1], s[2]);
-    // printf("ds: {%f, %f, %f}\n", ds[0], ds[1], ds[2]);
 
     for (int i = 0; i < N; ++i) {
         // Classic Euler's method for second order ODE
@@ -118,12 +98,10 @@ float *trace_ray(Ray *current) {
         free(ds2);
 
         // Update variables
-        s[0] += step_s[0];
-        s[1] += step_s[1];
-        s[2] += step_s[2];
-        ds[0] += step_ds[0];
-        ds[1] += step_ds[1];
-        ds[2] += step_ds[2];
+        for (int j = 0; j < 3; ++j) {
+            s[j] += step_s[j];
+            ds[j] += step_ds[j];
+        }
         t += dt;
 
         // Check for escape conditions
@@ -134,12 +112,7 @@ float *trace_ray(Ray *current) {
             output[1] = 0.F;
             return output;
         }
-        // if (fabs(s[1]) < DISKDEPTH && slength2 < (DISKRANGE[0] * DISKRANGE[0]) && slength2 > (DISKRANGE[1] * DISKRANGE[1])) {
-        //     // Photon hit accretion disk
-        //     output[0] = get_phi(s);
-        //     output[1] = sqrt(slength2);
-        //     return output;
-        // }
+        // No check for accretion disk womp womp
     }
   
     // Assume photon is far enough away from black hole to travel in straight line
@@ -150,7 +123,7 @@ float *trace_ray(Ray *current) {
 
     // printf("final s: {%f, %f, %f}\n", s[0], s[1], s[2]);
 
-    output[0] = get_phi(s, ehat0, ehat1);
+    output[0] = get_phi(s);
     output[1] = sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]);
 
     free(s);
@@ -161,26 +134,26 @@ float *trace_ray(Ray *current) {
 
 int main() {
     FILE *fptr = fopen("output.bin", "wb");
-    const int BATCHSIZE = 2048;
-    const int RESOLUTION = 512;
-    const int NUMBATCHES = ceil(RESOLUTION * RESOLUTION * 3 / (float) BATCHSIZE);
-    const float MAXR = 10000.F;
+    const int BATCHSIZE = 4096;
+    const int HEIGHT = 4096;
+    const int WIDTH = 512;
+    const int NUMBATCHES = ceil(HEIGHT * WIDTH * 3 / (float) BATCHSIZE);
+    const float MAXR = 1000.F;
 
     float *buffer = (float *) calloc(BATCHSIZE, sizeof(float));
     int bufferSize = 0;
     int buffersWritten = 0;
 
     // Print number of batches
-    printf("Resolution: %d          Batch size: %d\n", RESOLUTION, BATCHSIZE);
+    printf("Resolution: %d          Batch size: %d\n", HEIGHT * WIDTH, BATCHSIZE);
 
     // EXR is created from bottom left to top right
-    for (int i = 0; i < RESOLUTION; ++i) { // For each row
-        for (int j = 0; j < RESOLUTION; ++j) { // For each pixel in row...
-            // if (j == RESOLUTION / 2 + 10) exit(0);
+    for (int i = 0; i < HEIGHT; ++i) { // For each row
+        for (int j = 0; j < WIDTH; ++j) { // For each pixel in row...
 
             // Get ray for a r0 and psi (and cartesian coordinates)
-            float r0 = px2r(i, MAXR, RESOLUTION);
-            float psi = px2psi(j, RESOLUTION);
+            float r0 = MAXR * i / HEIGHT;
+            float psi = 3.141592F * j / WIDTH;
             Ray *current = create_ray(r0, psi);
 
             // Compute r1 and phi for this input

@@ -51,6 +51,12 @@ function ShaderRec() {
       shMatRef.current.uniforms.lightTxt.value = texture
       // console.log(texture.image.data)
     })
+
+    const txtLoader = new THREE.TextureLoader()
+    txtLoader.load('/skybox.jpg', (texture) => {
+      shMatRef.current.uniforms.skyTxt.value = texture
+      // console.log(texture)
+    })
   }, [])
 
   useFrame((state) => {
@@ -76,7 +82,8 @@ function ShaderRec() {
           uniforms={{
             meshPos: { value: meshPos.current },
             meshDim: { value: meshDim.current },
-            lightTxt: { value: null }
+            lightTxt: { value: null },
+            skyTxt: { value: null }
           }}
           vertexShader={tracerVert}
           fragmentShader={tracerFrag}
