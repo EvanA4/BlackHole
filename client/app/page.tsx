@@ -12,12 +12,12 @@ import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader'
 // import tracerFrag from './shaders/cartesianFrag.glsl'
 
 // Import schwarzschild shader
-// import tracerVert from './shaders/schwarzVert.glsl'
-// import tracerFrag from './shaders/schwarzFrag.glsl'
+import tracerVert from './shaders/schwarzVert.glsl'
+import tracerFrag from './shaders/schwarzFrag.glsl'
 
 // Import fast solution
-import tracerVert from './shaders/fastVert.glsl'
-import tracerFrag from './shaders/fastFrag.glsl'
+// import tracerVert from './shaders/fastVert.glsl'
+// import tracerFrag from './shaders/fastFrag.glsl'
 
 
 function BlackHoleMesh() {
@@ -57,6 +57,10 @@ function ShaderRec() {
       shMatRef.current.uniforms.skyTxt.value = texture
       // console.log(texture)
     })
+    txtLoader.load('/adisk.jpg', (texture) => {
+      shMatRef.current.uniforms.diskTxt.value = texture
+      // console.log(texture)
+    })
   }, [])
 
   useFrame((state) => {
@@ -83,7 +87,8 @@ function ShaderRec() {
             meshPos: { value: meshPos.current },
             meshDim: { value: meshDim.current },
             lightTxt: { value: null },
-            skyTxt: { value: null }
+            skyTxt: { value: null },
+            diskTxt: { value : null }
           }}
           vertexShader={tracerVert}
           fragmentShader={tracerFrag}

@@ -7,6 +7,8 @@
 
 uniform vec3 meshPos;
 uniform vec2 meshDim;
+uniform sampler2D skyTxt;
+uniform sampler2D diskTxt;
 varying vec2 vUv;
 
 
@@ -28,188 +30,98 @@ Ray create_screen_ray() {
 }
 
 
-vec3 get_infinity_pos(Ray r) {
-  float far = 10000.;
-
-  // solve parameterized equation for sphere collision https://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection
-  vec3 originDiff = r.origin;
-  float b = 2. * dot(r.dir, originDiff);
-  float c = dot(originDiff, originDiff) - far * far;
-  float disc = b * b - 4. * c;
-
-  if (disc > 0.) {
-    float sqrtDisc = sqrt(disc);
-    float distFarIntersect = (-b + sqrtDisc) / 2.;
-
-    if (distFarIntersect >= 0.)
-      return r.origin + r.dir * vec3(distFarIntersect);
-  }
-
-  return vec3(0.);
-}
-
-
-// float get_impact_param(Ray r) {
-//   float l = get_L(r);
-//   return abs(l / 1.);
-// }
-
-
-float f1(float t, float y, float G, float M, float L) {
-  float result = (3. * G*G * M*M / (L*L) * y*y - y + 1.);
-  return result;
-}
-
-float f2(float t, float y) {
-  float result = y;
-  return result;
-}
-
-
-
-// vec3 tracer(Ray currentRay) {
-//   int N;
-//   float G, M, L, E, uh0, u0, phi0, dphi;
-//   N = 1000;     // Number of steps
-//   G = 1.0;        // Gravitational constant
-//   M = 0.2;        // Mass of gravitating object
-//   L = length(vec3(
-//     currentRay.origin.y * currentRay.dir.z - currentRay.origin.z * currentRay.dir.y,
-//     currentRay.origin.z * currentRay.dir.x - currentRay.origin.x * currentRay.dir.z,
-//     currentRay.origin.x * currentRay.dir.y - currentRay.origin.y * currentRay.dir.x
-//   ));             // Angular momentum of orbiting object
-//   E = 1.0;        // Energy of orbiting object
-
-//   u0 = 1. / length(currentRay.origin);                       // Initial inverse radius test particle
-//   uh0 = -dot(currentRay.origin, currentRay.dir) * (u0 * u0);       // Initial derivative inverse radius wrt phi
-//   phi0 = 0.;                                         // Initial angle test particle
-//   dphi = 0.005;                                     // Step size
-
-//   /* Start calculations */
-//   float phi = phi0;
-//   float u = u0;
-//   float uh = uh0;
-//   float r = L*L / (G * M * u);
-//   float rs = 2. * G * M / (1. * 1.);
-//   float x = r * cos(phi);
-//   float y = r * sin(phi);
-//   float t = 0.;
-
-//   /* Evolve orbit */
-//   for(int i = 0; i < N; ++i) {
-//     /* Advance step */
-//     float u_o = u;
-//     float uh_o = uh;
-//     float h = dphi;
-
-//     /* Integration using the method of Heun */
-//     float uh_hat = uh_o + h * f1(phi, u_o, G, M, L);
-//     u = u_o + 0.5 * h * (f2(phi, uh_o) + f2(phi, uh_hat));
-
-//     float u_hat = u_o + h*f2(phi, uh_o);
-//     uh = uh_o + 0.5 * h * (f1(phi, u_o, G, M, L) + f1(phi, u_hat, G, M, L));
-
-//     /* Compute radial coordinate */
-//     r = L * L / (G * M * u);
-
-//     if (r < rs) {
-//       return vec3(0.);
-//     }
-
-//     /* Compute time coordinate */
-//     float d_tau = r * r * dphi / L;
-//     float dt = E * d_tau / (1. - 2. * G * M / r);
-
-//     t = t + dt;
-
-//     /* Compute Cartesian coordinates */
-//     x = r * cos(phi);
-//     y = r * sin(phi);
-
-//     /* Update angle */
-//     phi = phi + dphi;
-//   }
-
-//   vec3 e0 = x * normalize(currentRay.origin);
-//   vec3 e1 = y * normalize(currentRay.dir);
-
-//   return e0 + e1;
-// }
-
-
-vec3 get_ds2(float L, vec3 s) { // Returns the second derivative of s
-  return -1.5 * (L * L) * normalize(s) / pow(length(s), 4.);
+vec2 get_ea(float L, vec2 ep) { // Returns the second derivative of s
+  float ep_len = length(ep);
+  float c = -1.5 * (L * L) / pow(ep_len, 5.);
+  return vec2(c) * ep;
 }
 
 
 vec3 tracer(Ray currentRay) {
-  int N;
-  float L, t, dt;
-  vec3 s, ds;
-  N = 1500;       // Number of steps
-  L = length(vec3(
-    currentRay.origin.y * currentRay.dir.z - currentRay.origin.z * currentRay.dir.y,
-    currentRay.origin.z * currentRay.dir.x - currentRay.origin.x * currentRay.dir.z, // Angular momentum of photon
-    currentRay.origin.x * currentRay.dir.y - currentRay.origin.y * currentRay.dir.x
-  ));
-  
-  s = currentRay.origin;
-  ds = currentRay.dir;
-  t = 0.;
-  dt = .025;
+  // Initialize constants, ehat0, ehat1 ep, ev
+  vec2 disk;
+  int N = 1500;
+  float dt = .025;
+  vec2 ep = vec2(length(currentRay.origin), 0.);
+  vec3 ehat0 = currentRay.origin / ep.x;
+  vec3 ehat1 = normalize(currentRay.dir - dot(currentRay.dir, ehat0) * ehat0);
+  vec2 ev = vec2(dot(currentRay.dir, ehat0), dot(currentRay.dir, ehat1));
+  float L = ep.x * ev.y;
+  float DISK_SLOPE = ehat0.y / ehat1.y;
 
-  for (int i = 0; i < N; ++i) { // using classic Runge-Kutta method for second order ODE numeric integration
-    // Calculate partial steps
-    vec3 k1s, k2s, k3s, k4s;
-    vec3 k1ds, k2ds, k3ds, k4ds;
+  for (int i = 0; i < N; ++i) {
+    // Classic Runge-Kutta method
+    // vec2 k1ep, k2ep, k3ep, k4ep;
+    // vec2 k1ev, k2ev, k3ev, k4ev;
 
-    // k1s = ds;
-    // k1ds = get_ds2(L, s);
-    // k2s = ds + dt * k1ds / 2.;
-    // k2ds = get_ds2(L, s + dt * k1s / 2.);
-    // k3s = ds + dt * k2ds / 2.;
-    // k3ds = get_ds2(L, s + dt * k2s / 2.);
-    // k4s = ds + dt * k3ds;
-    // k4ds = get_ds2(L, s + dt * k3s);
+    // k1ep = ev;
+    // k1ev = get_ea(L, ep);
+    // k2ep = ev + dt * k1ev / 2.;
+    // k2ev = get_ea(L, ep + dt * k1ep / 2.);
+    // k3ep = ev + dt * k2ev / 2.;
+    // k3ev = get_ea(L, ep + dt * k2ep / 2.);
+    // k4ep = ev + dt * k3ev;
+    // k4ev = get_ea(L, ep + dt * k3ep);
+    // vec2 step_ep = dt / 6. * (k1ep + 2. * k2ep + 2. * k3ep + k4ep);
+    // vec2 step_ev = dt / 6. * (k1ev + 2. * k2ev + 2. * k3ev + k4ev);
 
-    // // Combine partial steps
-    // vec3 step_s = s + dt / 6. * (k1s + 2. * k2s + 2. * k3s + k4s);
-    // vec3 step_ds = ds + dt / 6. * (k1ds + 2. * k2ds + 2. * k3ds + k4ds);
-
-    // // Temp code
-    vec3 step_s = ds * dt;
-    vec3 step_ds = get_ds2(L, s) * dt;
-
+    // Euler's method
+    vec2 step_ep = ev * dt;
+    vec2 step_ev = get_ea(L, ep) * dt;
 
     // Update variables
-    s += step_s;
-    ds += step_ds;
-    t += dt;
+    vec2 old_ep = ep;
+    ep += step_ep;
+    ev += step_ev;
 
-    // Check for escape condition
-    if (length(s) < 1.) { // Photon entered event horizon, return black
+    // Photon entered event horizon, return black
+    if (length(ep) < 1.) {
       return vec3(0.);
     }
-    if (abs(s.y) < .025 && length(s) < 6. && length(s) > 3.) {
-      return vec3(1.,(length(s) - 1.5) / 3.5,.4);
+    
+    // Photon hit accretion disk
+    if (ep.x * DISK_SLOPE < ep.y != old_ep.x * DISK_SLOPE < old_ep.y) {
+      float current_m = (ep.y - old_ep.y) / (ep.x - old_ep.x);
+      float current_b = old_ep.y - current_m * old_ep.x;
+      float cross_e0 = -current_b / (DISK_SLOPE - current_m);
+      float cross_e1 = DISK_SLOPE * cross_e0;
+      vec3 finalPos = cross_e0 * ehat0 + cross_e1 * ehat1;
+      float final_len2 = cross_e0 * cross_e0 + cross_e1 * cross_e1;
+
+      if (final_len2 > 9. && final_len2 < 36.) {
+        return finalPos;
+      }
     }
   }
   
-  return s + 1000. * ds; // Assume photon is far enough away from black hole to travel in straight line
+  vec2 finalep = ep + vec2(1000.) * ev;
+  vec3 finalPos = finalep.x * ehat0 + finalep.y * ehat1;
+
+  return finalPos; // Assume photon is far enough away from black hole to travel in straight line
 }
 
 
 void main () {
-  Ray r = create_screen_ray();
-  vec3 final = tracer(r);
+  Ray currentRay = create_screen_ray();
+  vec3 finalPos = tracer(currentRay);
 
-  // float ip = get_impact_param(r);
-  // vec3 infPos = get_infinity_pos(r);
-  // float ip_threshold = 3. * 1.73205080 *1. * .2 / (1. * 1.);
-  // if (ip > ip_threshold)
-  //   gl_FragColor = vec4(infPos, 1.);
-  // else
-  //   gl_FragColor = vec4(0., 0., 0., 1.);
+  // gl_FragColor = vec4(final, 1.);
 
-  gl_FragColor = vec4(final, 1.);
+  // access sky texture with spherical coords
+  if (length(finalPos) > 100.) { // if photon didn't hit disk
+    float ftheta = 3.141592 - acos(finalPos.y / length(finalPos));
+    float fphi = sign(finalPos.z) * acos(finalPos.x / sqrt(finalPos.x * finalPos.x + finalPos.z * finalPos.z)) + 3.141592;
+    gl_FragColor = texture2D(skyTxt, vec2(fphi / 3.141592 / 2., ftheta / 3.141592));
+    if (abs(fphi) < 0.004)
+      gl_FragColor = texture2D(skyTxt, vec2(.002, ftheta / 3.141592));
+  } else if (length(finalPos) > 2.9) {
+    // float fphi = sign(finalPos.z) * acos(finalPos.x / sqrt(finalPos.x * finalPos.x + finalPos.z * finalPos.z)) + 3.141592;
+    // float r = (length(finalPos) - 3.) / 3.;
+    // vec3 rawColor = texture2D(diskTxt, vec2(fphi / 3.141592 / 2., r)).xyz;
+    // if (abs(fphi) < 0.004)
+    //   rawColor = texture2D(diskTxt, vec2(.002, r)).xyz;
+    gl_FragColor = vec4(finalPos, 1.);
+  } else {
+    gl_FragColor = vec4(0., 0., 0., 1.);
+  }
 }
