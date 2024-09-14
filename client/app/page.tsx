@@ -5,6 +5,7 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader'
+import { Bloom, EffectComposer } from '@react-three/postprocessing'
 
 
 // Import normal shader
@@ -75,6 +76,8 @@ function ShaderRec() {
     meshPos.current.copy(meshRef.current.position)
     meshDim.current.set(rectRef.current.parameters.width, rectRef.current.parameters.height)
 
+    shMatRef.current.uniforms.uTime.value = state.clock.elapsedTime
+
     // console.log(camera.position)
   })
 
@@ -88,7 +91,8 @@ function ShaderRec() {
             meshDim: { value: meshDim.current },
             lightTxt: { value: null },
             skyTxt: { value: null },
-            diskTxt: { value : null }
+            diskTxt: { value : null },
+            uTime: { value : 0 }
           }}
           vertexShader={tracerVert}
           fragmentShader={tracerFrag}
@@ -102,13 +106,16 @@ function ShaderRec() {
 
 export default function Home() {
   return (
-    <main className="bg-gray-700 h-[100vh]">
+    <main className="bg-orange-700 h-[100vh]">
       <Canvas resize={{scroll: false}}>
         <PerspectiveCamera position={[10, 0, 0]} makeDefault fov={50}/>
         {/* <spotLight position={[10, 10, 10]} intensity={1000}/> */}
         {/* <BlackHoleMesh/> */}
         <ShaderRec/>
         <OrbitControls/>
+        <EffectComposer>
+          <Bloom luminanceThreshold={0.4} luminanceSmoothing={0.99} height={200}/>
+        </EffectComposer>
       </Canvas>
     </main>
   );

@@ -9,6 +9,7 @@ uniform vec3 meshPos;
 uniform vec2 meshDim;
 uniform sampler2D skyTxt;
 uniform sampler2D diskTxt;
+uniform float uTime;
 varying vec2 vUv;
 
 
@@ -39,15 +40,14 @@ vec2 get_ea(float L, vec2 ep) { // Returns the second derivative of s
 
 vec3 tracer(Ray currentRay) {
   // Initialize constants, ehat0, ehat1 ep, ev
-  vec2 disk;
-  int N = 1500;
-  float dt = .025;
+  int N = 750;
+  float dt = .05;
   vec2 ep = vec2(length(currentRay.origin), 0.);
   vec3 ehat0 = currentRay.origin / ep.x;
   vec3 ehat1 = normalize(currentRay.dir - dot(currentRay.dir, ehat0) * ehat0);
   vec2 ev = vec2(dot(currentRay.dir, ehat0), dot(currentRay.dir, ehat1));
   float L = ep.x * ev.y;
-  float DISK_SLOPE = ehat0.y / ehat1.y;
+  float DISK_SLOPE = -ehat0.y / ehat1.y;
 
   for (int i = 0; i < N; ++i) {
     // Classic Runge-Kutta method
@@ -101,6 +101,31 @@ vec3 tracer(Ray currentRay) {
 }
 
 
+// Returns theta and phi of the spherical coordinates corresponding to the cartesian coordinates
+vec2 get_angles(vec3 cart) {
+  float th = 3.141592 - atan(sqrt(cart.x * cart.x + cart.z * cart.z), cart.y);
+  float phi;
+  if (cart.x == 0.0) {
+    if (cart.z == 0.0) {
+      phi = 0.0;
+    } else if (cart.z > 0.0) {
+      phi = 3.141592 / 2.;
+    } else {
+      phi = -1.0 * 3.141592 / 2.;
+    }
+  } else if (cart.x > 0.0) {
+    phi = atan(cart.z / cart.x);
+  } else if (cart.x < 0.0) {
+    if (cart.z >= 0.0) {
+      phi = atan(cart.z / cart.x) + 3.141592;
+    } else {
+      phi = atan(cart.z / cart.x) + 3.141592;
+    }
+  }
+  return vec2(th, phi + 3.141592 / 2.);
+}
+
+
 void main () {
   Ray currentRay = create_screen_ray();
   vec3 finalPos = tracer(currentRay);
@@ -109,18 +134,20 @@ void main () {
 
   // access sky texture with spherical coords
   if (length(finalPos) > 100.) { // if photon didn't hit disk
-    float ftheta = 3.141592 - acos(finalPos.y / length(finalPos));
-    float fphi = sign(finalPos.z) * acos(finalPos.x / sqrt(finalPos.x * finalPos.x + finalPos.z * finalPos.z)) + 3.141592;
-    gl_FragColor = texture2D(skyTxt, vec2(fphi / 3.141592 / 2., ftheta / 3.141592));
-    if (abs(fphi) < 0.004)
-      gl_FragColor = texture2D(skyTxt, vec2(.002, ftheta / 3.141592));
+    // if (abs(finalPos.z) < .4) finalPos.z = .4;
+    vec2 sph = get_angles(finalPos);
+    float ftheta01 = sph.x / 3.141592;
+    float fphi01 = sph.y / 3.141592 / 2.;
+    gl_FragColor = texture2D(skyTxt, vec2(fphi01, ftheta01));
+    // gl_FragColor = texture2D(skyTxt, vec2(fract(vUv.x + .5), fract(vUv.y + vUv.x)));
+    // gl_FragColor = vec4(fphi01, 0., 0., 1.); 
   } else if (length(finalPos) > 2.9) {
-    // float fphi = sign(finalPos.z) * acos(finalPos.x / sqrt(finalPos.x * finalPos.x + finalPos.z * finalPos.z)) + 3.141592;
-    // float r = (length(finalPos) - 3.) / 3.;
-    // vec3 rawColor = texture2D(diskTxt, vec2(fphi / 3.141592 / 2., r)).xyz;
-    // if (abs(fphi) < 0.004)
-    //   rawColor = texture2D(diskTxt, vec2(.002, r)).xyz;
-    gl_FragColor = vec4(finalPos, 1.);
+    if (abs(finalPos.z) < .4) finalPos.z = .4;
+    float fphi = sign(finalPos.z) * acos(finalPos.x / sqrt(finalPos.x * finalPos.x + finalPos.z * finalPos.z)) + 3.141592;
+    float r01 = (length(finalPos) - 3.) / 3.;
+    float fphi01 = fract((fphi + uTime) / 3.141592 / 2.);
+    vec3 rawColor = texture2D(diskTxt, vec2(fphi01, r01)).xyz;
+    gl_FragColor = vec4(rawColor.x, rawColor.y, rawColor.z * .8, 1.);
   } else {
     gl_FragColor = vec4(0., 0., 0., 1.);
   }
