@@ -142,7 +142,6 @@ void main () {
     // gl_FragColor = texture2D(skyTxt, vec2(fract(vUv.x + .5), fract(vUv.y + vUv.x)));
     // gl_FragColor = vec4(fphi01, 0., 0., 1.); 
   } else if (length(finalPos) > 2.9) {
-    if (abs(finalPos.z) < .4) finalPos.z = .4;
     float fphi = sign(finalPos.z) * acos(finalPos.x / sqrt(finalPos.x * finalPos.x + finalPos.z * finalPos.z)) + 3.141592;
     float r01 = (length(finalPos) - 3.) / 3.;
     float fphi01 = fract((fphi + uTime) / 3.141592 / 2.);
