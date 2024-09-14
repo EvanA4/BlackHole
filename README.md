@@ -1,3 +1,3 @@
 # BlackHole
 
-This NextJS application uses the Schwarzchild geodesic equations to numerically integrate the paths of light for real-time raytracing.
+This NextJS application uses a derivation from the Schwarzchild metric to numerically integrate the paths of light for real-time general relativistic raytracing.
